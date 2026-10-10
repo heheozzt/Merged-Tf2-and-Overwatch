@@ -1,0 +1,38 @@
+{
+  "sheet": "movement",
+  "about": "How TF2's world maps onto White Knuckle's. One row. The mod measures White Knuckle's gravity and velocity units in flight and keeps TF2 trajectories the same relative to your body: speed scale k = sqrt(g_wk * s / gravityHU), s = WK body height / hullHeightHU (metres per HU).",
+  "columns": {
+    "id": "row id",
+    "gravityHU": "TF2 sv_gravity (HU/s^2)",
+    "hullHeightHU": "TF2 standing hull height",
+    "crouchForceHeightHU": "hull height TF2 uses for blast push while crouched",
+    "hullWidthHU": "TF2 hull width",
+    "airAccelerate": "TF2 sv_airaccelerate",
+    "airWishSpeedCapHU": "TF2 air wish-speed cap (HU/s)",
+    "maxVelocityHU": "TF2 sv_maxvelocity per axis (HU/s)",
+    "defaultWkGravity": "White Knuckle gravity (m/s^2) used until measured in flight",
+    "defaultWkVelocityToMetres": "White Knuckle vel field to m/s, used until measured",
+    "defaultWkBodyHeight": "White Knuckle body height (m) used if the character controller can't be read",
+    "calibrationSamples": "airborne physics steps to measure before trusting the measurement",
+    "blastStateMinTime": "seconds after a blast before landing ends TF2 air control",
+    "source": "where the numbers come from"
+  },
+  "rows": [
+    {
+      "id": "Tf2InWhiteKnuckle",
+      "gravityHU": 800.0,
+      "hullHeightHU": 82.0,
+      "crouchForceHeightHU": 55.0,
+      "hullWidthHU": 48.0,
+      "airAccelerate": 10.0,
+      "airWishSpeedCapHU": 30.0,
+      "maxVelocityHU": 3500.0,
+      "defaultWkGravity": 20.0,
+      "defaultWkVelocityToMetres": 175.0,
+      "defaultWkBodyHeight": 1.8,
+      "calibrationSamples": 20,
+      "blastStateMinTime": 0.1,
+      "source": "Source sv_gravity 800, sv_airaccelerate 10, air wishspeed cap 30, sv_maxvelocity 3500; TF2 hull 48x48x82, self-blast crouch hull 55 (tf_player.cpp); WK vel x175 = m/s from senkodev/WKBloodbugMode (MIT); WK gravity default is a guess replaced by in-flight measurement"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "sheet": "assets",
+  "about": "Every file the mod reads from the player's own Team Fortress 2 install at runtime. Nothing here ships with the mod. A model row also needs its .vvd and .dx90.vtx next to the .mdl (except animation libraries).",
+  "columns": {
+    "id": "row id",
+    "path": "path inside TF2's tf/ content (VPK or loose)",
+    "package": "which tf2_*_dir.vpk holds it: misc, sound or textures",
+    "kind": "model, animations, sound or texture",
+    "required": "true: the feature it belongs to cannot work without it; false: cosmetic",
+    "usedBy": "the sheet rows that use it"
+  },
+  "rows": [
+    { "id": "mdl_c_rocketlauncher", "path": "models/weapons/c_models/c_rocketlauncher/c_rocketlauncher.mdl", "package": "misc", "kind": "model", "required": true, "usedBy": "weapons.RocketLauncher" },
+    { "id": "mdl_c_stickybomb_launcher", "path": "models/weapons/c_models/c_stickybomb_launcher/c_stickybomb_launcher.mdl", "package": "misc", "kind": "model", "required": true, "usedBy": "weapons.StickybombLauncher" },
+    { "id": "mdl_c_soldier_arms", "path": "models/weapons/c_models/c_soldier_arms.mdl", "package": "misc", "kind": "model", "required": true, "usedBy": "classes.Soldier" },
+    { "id": "mdl_c_soldier_animations", "path": "models/weapons/c_models/c_soldier_animations.mdl", "package": "misc", "kind": "animations", "required": true, "usedBy": "classes.Soldier" },
+    { "id": "mdl_c_demo_arms", "path": "models/weapons/c_models/c_demo_arms.mdl", "package": "misc", "kind": "model", "required": true, "usedBy": "classes.Demoman" },
+    { "id": "mdl_c_demo_animations", "path": "models/weapons/c_models/c_demo_animations.mdl", "package": "misc", "kind": "animations", "required": true, "usedBy": "classes.Demoman" },
+    { "id": "mdl_w_rocket", "path": "models/weapons/w_models/w_rocket.mdl", "package": "misc", "kind": "model", "required": true, "usedBy": "projectiles.Rocket" },
+    { "id": "mdl_w_stickybomb", "path": "models/weapons/w_models/w_stickybomb.mdl", "package": "misc", "kind": "model", "required": true, "usedBy": "projectiles.Stickybomb" },
+    { "id": "snd_rocket_shoot", "path": "sound/weapons/rocket_shoot.wav", "package": "sound", "kind": "sound", "required": true, "usedBy": "weapons.RocketLauncher" },
+    { "id": "snd_sticky_shoot", "path": "sound/weapons/stickybomblauncher_shoot.wav", "package": "sound", "kind": "sound", "required": true, "usedBy": "weapons.StickybombLauncher" },
+    { "id": "snd_sticky_charge", "path": "sound/weapons/stickybomblauncher_charge_up.wav", "package": "sound", "kind": "sound", "required": false, "usedBy": "weapons.StickybombLauncher" },
+    { "id": "snd_sticky_det", "path": "sound/weapons/stickybomblauncher_det.wav", "package": "sound", "kind": "sound", "required": false, "usedBy": "weapons.StickybombLauncher" },
+    { "id": "snd_sticky_land", "path": "sound/weapons/grenade_impact.wav", "package": "sound", "kind": "sound", "required": false, "usedBy": "projectiles.Stickybomb" },
+    { "id": "snd_explode1", "path": "sound/weapons/explode1.wav", "package": "sound", "kind": "sound", "required": true, "usedBy": "explosions.RocketBlast" },
+    { "id": "snd_explode2", "path": "sound/weapons/explode2.wav", "package": "sound", "kind": "sound", "required": false, "usedBy": "explosions.RocketBlast" },
+    { "id": "snd_explode3", "path": "sound/weapons/explode3.wav", "package": "sound", "kind": "sound", "required": false, "usedBy": "explosions.RocketBlast" },
+    { "id": "snd_pipe_bomb1", "path": "sound/weapons/pipe_bomb1.wav", "package": "sound", "kind": "sound", "required": true, "usedBy": "explosions.StickyBlast" },
+    { "id": "snd_draw_primary", "path": "sound/weapons/draw_primary.wav", "package": "sound", "kind": "sound", "required": false, "usedBy": "systems.ModeToggle" },
+    { "id": "tex_fireball", "path": "materials/effects/fireball.vtf", "package": "textures", "kind": "texture", "required": false, "usedBy": "effects.TF2Explosion" },
+    { "id": "tex_fire_cloud", "path": "materials/effects/fire_cloud2.vtf", "package": "textures", "kind": "texture", "required": false, "usedBy": "effects.TF2Explosion" },
+    { "id": "tex_smoke", "path": "materials/effects/smoke/smokelit.vtf", "package": "textures", "kind": "texture", "required": false, "usedBy": "effects.TF2Explosion" }
+  ]
+}

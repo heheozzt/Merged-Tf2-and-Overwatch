@@ -1,0 +1,38 @@
+{
+  "sheet": "effects",
+  "about": "Blast visuals built from TF2's own effect textures (camera-facing cards that grow and fade).",
+  "columns": {
+    "id": "row id",
+    "fireTexture": "assets row for the fireball cards",
+    "fireCloudTexture": "assets row for the outer fire cloud",
+    "smokeTexture": "assets row for the smoke cards",
+    "fireCards": "number of fireball cards",
+    "smokeCards": "number of smoke cards",
+    "startSizeHU": "card size at the start",
+    "endSizeHU": "card size at the end",
+    "fireDuration": "seconds the fire lasts",
+    "smokeDuration": "seconds the smoke lasts",
+    "spreadHU": "how far cards drift from the centre",
+    "lightRangeHU": "range of the blast flash light (0 = no light)",
+    "lightDuration": "seconds the flash light lasts",
+    "source": "where it comes from"
+  },
+  "rows": [
+    {
+      "id": "TF2Explosion",
+      "fireTexture": "tex_fireball",
+      "fireCloudTexture": "tex_fire_cloud",
+      "smokeTexture": "tex_smoke",
+      "fireCards": 6,
+      "smokeCards": 5,
+      "startSizeHU": 40.0,
+      "endSizeHU": 150.0,
+      "fireDuration": 0.45,
+      "smokeDuration": 1.6,
+      "spreadHU": 40.0,
+      "lightRangeHU": 300.0,
+      "lightDuration": 0.25,
+      "source": "Textures from TF2's ExplosionCore particle materials (effects/fireball, effects/fire_cloud2, effects/smoke/smokelit); timings tuned by this mod to approximate it"
+    }
+  ]
+}
