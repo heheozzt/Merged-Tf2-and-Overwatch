@@ -15,7 +15,9 @@ It covers:
 The repo name still says "Overwatch". The project is TF2 × White Knuckle; renaming the repo is up to the user.
 
 > **Status in one line:** the TF2 file readers (VPK, models, animations, textures, materials, sounds) are
-> written and pass tests against real TF2 files. The design sheets, preflight and code generator are written.
+> written. The VPK, model, animation and material readers pass tests against real TF2 files; the VTF and WAV
+> decoders pass only on synthetic and Valve platform files, so TF2's own textures and sounds still need testing
+> on the PC (step 0.4). The design sheets, preflight and code generator are written.
 > **The White Knuckle plugin itself (10 system files) is not written yet.** Nothing has been built for the
 > game, tested in game, packaged or uploaded to Melty, and no Melty draft exists.
 
@@ -25,9 +27,8 @@ The repo name still says "Overwatch". The project is TF2 × White Knuckle; renam
 
 1. Clone and check out the branch:
    ```
-   git clone https://github.com/heheozzt/Merged-Tf2-and-Overwatch
+   git clone -c core.autocrlf=false -b claude/peaceful-clarke-udidyg https://github.com/heheozzt/Merged-Tf2-and-Overwatch
    cd Merged-Tf2-and-Overwatch
-   git checkout claude/peaceful-clarke-udidyg
    ```
 2. Tools the work needs. Install them from their official sources if missing.
    - .NET SDK 8: https://dotnet.microsoft.com/download/dotnet/8.0
@@ -192,7 +193,8 @@ The user picked **Team Fortress 2** and **White Knuckle** on Melty's Create page
   - Air-detonation radius is ×0.85, ramping back to ×1 over 2 s if it never touched a surface.
 - **Self-blast knockback** (TF2 `DamageForce` / `ApplyPushFromDamage`):
   - `dist = min(|P − feet|, |P − centre|)` in HU.
-  - `damage = lerp(base, base·0.5, dist/selfRadius)`.
+  - If `dist > selfRadius` (× the air-det scale for stickies) there is no push; otherwise
+    `damage = lerp(base, base·edgeDamageFraction, clamp01(dist/selfRadius))`. The same rule applies to loose objects with radiusHU.
   - Multiply damage by the self-damage scale: rocket 0.6 airborne / 1.0 grounded; sticky 0.75.
   - `force = min(1000, damage · (82 / hullZ) · scale)` HU/s, where `hullZ` = 82 standing or 55 crouched
     (the crouch bonus is ≈1.49×).
@@ -204,8 +206,8 @@ The user picked **Team Fortress 2** and **White Knuckle** on Melty's Create page
   - Applied as `ForceMode.VelocityChange` to non-kinematic rigidbodies that are not the player and not part
     of a creature (`Denizen`).
 - **Air control while flying from a blast** (Source `AirAccelerate`):
-  - `wishspd = min(classSpeed, 30)`, `addspeed = wishspd − dot(v, wishdir)`.
-  - `accel = min(10 · classSpeed · dt, addspeed)`.
+  - `wishspd = min(classSpeed, 30)`, `addspeed = wishspd − dot(v, wishdir)`; **if addspeed ≤ 0, add nothing**.
+  - Otherwise `accel = min(10 · classSpeed · dt, addspeed)` and `v += accel · wishdir` (unit wishdir, horizontal relative to player up).
   - classSpeed is Soldier 240 or Demoman 280, following the launcher in hand.
   - While blast-jumping, set White Knuckle's `airControl` and `dragCoefficient` to 0, and restore them on
     landing or grabbing.
@@ -451,7 +453,10 @@ Do not guess any of them.
 
 ---
 
-## 5. Environment notes from the cloud session
+## 5. Environment notes
+
+- **Do this on the PC:** clone https://github.com/rehan-remade/universal-modder and follow
+  `skills/mod-any-game/SKILL.md` for the rest of the work (the user's prompt requires it). from the cloud session
 - The toolkit used is universal-modder (https://github.com/rehan-remade/universal-modder),
   `skills/mod-any-game/SKILL.md`. Its knowledge note
   `knowledge/techniques/reading-source-engine-models-and-animations.md` matched TF2's formats.
@@ -467,19 +472,222 @@ Do not guess any of them.
   - the downloaded BepInEx and NuGet packages;
   - the cloned reference mods.
 
+
+---
+
+## 6. Independent review findings (binding: these refine or override sections 0–5)
+
+Four independent reviewers checked this handoff: the built claims (by re-running the tests and preflight), the design maths, Windows usability and completeness.
+The FOV ratio, air control, blast-radius clamp, clone command and status line are already fixed above.
+`.gitignore` and `.gitattributes` are already updated. Apply everything else listed here.
+
+### 6.1 [error] Status line (built-claims)
+
+**Problem:** Re-running the tests shows the texture and sound readers have never run on real TF2 files. The run against tf2srv/root/tf prints "(texture not in this install: ...)" 9 times and "(sound not in this install: ...)" 4 times. The real-VTF and real-WAV checks used Valve platform files (platform_misc_dir.vpk VTFs, 2 Valve WAVs), not TF2 weapon or arms assets. Section 2.1 itself says TF2 textures and sounds are NOT TESTED, so the status line contradicts it.
+
+**Do:** Replace with: "the TF2 file readers (VPK, models, animations, textures, materials, sounds) are written. The VPK, model, animation and material readers pass tests against real TF2 files. The VTF and WAV decoders pass on synthetic files and on Valve platform files only; TF2's own textures and sounds still need testing on the PC (step 0.4)."
+
+### 6.2 [gap] 0 step 4 / 2.1 (TF2 textures and sounds NOT TESTED) (built-claims)
+
+**Problem:** In tests/TF2Assets.Tests/Program.cs, a texture or sound missing from the install is only printed as "(texture not in this install: ...)" or "(sound not in this install: ...)". It does not count as a failure, and the run still ends with "ALL PASSED" and exit code 0 (confirmed on the server-depot run). The next session could see ALL PASSED and wrongly conclude that textures and sounds were verified.
+
+**Do:** Add: "The runner does NOT fail when a texture or sound is missing; it prints '(texture not in this install: …)' and still says ALL PASSED. Success here means: no '(… not in this install' lines, 9 'PASS texture materials/…vtf WxH' lines (one per material: rl, sl, rocket, sticky, 3 soldier arms, 2 demo arms) and 4 'PASS sound/weapons/….wav: …' lines."
+
+### 6.3 [gap] 2.1 VTF and WAV rows (built-claims)
+
+**Problem:** The handoff never says how to reproduce the real-VTF and WAV checks. The real-VTF check runs only when the env var VTF_VPK points at a VPK; it was platform/platform_misc_dir.vpk, giving materials/vgui/white.vtf, vgui/vtfnotloaded.vtf, debug/defaultlightmap.vtf and engine/box.vtf. The WAV check runs only with a third argument: a folder of .wav files, each with a <name>.f32 ffmpeg decode beside it. Neither the folder nor its files are in the repo. The step 0.4 command passes neither, so on the PC these rows silently do not run.
+
+**Do:** Add under the table: "To re-run the real-VTF rows: set VTF_VPK=<Team Fortress 2>\platform\platform_misc_dir.vpk (first arg may be \"\"). To re-run the WAV rows: pass a third arg, a folder of test .wav files, each with a reference made by `ffmpeg -i X.wav -f f32le -acodec pcm_f32le X.f32` (test files: ffmpeg-generated PCM u8/s16le/s24le/f32le, adpcm_ms mono/stereo, adpcm_ima_wav mono/stereo, plus 2 Valve WAVs). This folder was not committed."
+
+### 6.4 [gap] 0 step 4 (built-claims)
+
+**Problem:** Run from the repo root, this writes `out\*.ppm` into the repo: renders of TF2 meshes and, on the PC, decoded TF2 textures (tex_*.ppm). .gitignore does not ignore `out/` or `*.ppm`, so a later `git add .` would commit content derived from TF2, against the repo's own "never commit game files or extracted content" rule.
+
+**Do:** Use an output folder outside the repo (e.g. `%TEMP%\tf2out`), or add `/out/` and `*.ppm` to .gitignore before running.
+
+### 6.5 [nit] 2.1 table, VPK/models row (built-claims)
+
+**Problem:** Every other model lists its counts, but the rocket launcher has none. The actual output is "v48 6783 verts, 6916 tris, 1 submeshes", which the next session needs to compare its own PC run against.
+
+**Do:** `c_rocketlauncher` (v48, 6783 verts, 6916 tris), `c_stickybomb_launcher` (7914 verts, 6931 tris), ... `c_demo_arms` (1979 v, 2 submeshes)
+
+### 6.6 [error] 1.5 decision 5 (Viewmodel field of view) (design-math)
+
+**Problem:** The ratio is inverted. On-screen size ∝ size / (depth · tan(vfov/2)). Matching TF2 needs depth' · tan(vfovCam/2) = depth · tan(41.81°/2), so depth' = depth · tan(41.81°/2) / tan(vfovCam/2). A larger camera FOV needs the model pulled CLOSER, not pushed further. Multiplying depth by the stated t pushes it further, so at e.g. a 90° vertical FOV the viewmodel shrinks to about 0.15× its intended size instead of filling the screen as in TF2. The ViewModel.cs row in 3.3 inherits the error through 'decision 5'.
+
+**Do:** Replace with: "scale the viewmodel along the camera's forward axis (multiply view-space depth) by `t = tan(41.81°/2) / tan(vfovCam/2)`, where vfovCam is the vertical `fieldOfView` of the camera that actually draws the viewmodel (the inventory camera or the mod's overlay camera). A larger camera FOV gives t < 1 and brings the model closer. On the mod's own overlay camera it is simpler to set `fieldOfView = 41.81` and use no scale."
+
+### 6.7 [error] 1.6 Air control (design-math)
+
+**Problem:** Source's AirAccelerate returns early when addspeed <= 0. As written, min(...) gives a negative accel whenever the player already moves faster than 30 HU/s along wishdir (true for almost every blast jump), so v += accel·wishdir would brake the player whenever they hold a key in the direction of travel. That would break blast jumps.
+
+**Do:** Write: "`addspeed = wishspd − dot(v, wishdir)`; **if addspeed ≤ 0, add nothing**; otherwise `accel = min(10 · classSpeed · dt, addspeed)` and `v += accel · wishdir` (wishdir has unit length, and only horizontal relative to player up)."
+
+### 6.8 [gap] 1.6 Self-blast knockback (design-math)
+
+**Problem:** It does not say what happens when dist > selfRadius. A plain lerp extrapolates, so the push drops below half and then goes negative (a pull) instead of stopping. TF2 uses RemapValClamped and only affects entities inside the radius.
+
+**Do:** Write: "If dist > selfRadius × (air-det radius scale, for stickies), no push. Otherwise `damage = lerp(base, base·edgeDamageFraction, clamp01(dist/selfRadius))`." Apply the same rule to loose objects with radiusHU.
+
+### 6.9 [gap] 1.5 decision 6 / 3.3 ViewModel.cs (design-math)
+
+**Problem:** TF2 viewmodel vertices sit only a few HU in front of the eye. At s ≈ 1.8/82 ≈ 0.022 m/HU that is about 2–20 cm, and less again once the depth scale for a wide camera FOV is applied. Unity's default near clip plane is 0.3 m. The next session will likely see the arms and launcher clipped away or missing and not know why.
+
+**Do:** Add: "The viewmodel is scaled by s (metres per HU) and sits about 0.02–0.5 m from the eye. Check the drawing camera's `nearClipPlane` and log it. On the mod's overlay camera set it to about 0.01. If the inventory camera's near plane is larger, use the overlay camera."
+
+### 6.10 [gap] 1.6 / 3.3 (AirControl, BlastPhysics) (design-math)
+
+**Problem:** The movement sheet has `maxVelocityHU` 3500 (sv_maxvelocity per axis), but no handoff section and no system row in 3.3 says to apply it. Repeated rocket or sticky stacking can then exceed TF2's limit, and the sheet value is never used.
+
+**Do:** Add to 1.6 and to the BlastPhysics/AirControl rows: "After adding knockback or air acceleration, clamp each component of velocity in TF2 units (converted with k) to ±maxVelocityHU (3500), as Source's CheckVelocity does."
+
+### 6.11 [nit] 1.6 Stickybomb Launcher (design-math)
+
+**Problem:** The explosions sheet column `airDetRampTime` says the 2 s are "seconds after arming", so the ramp starts at 0.8 s. The handoff leaves out the start point, so the ramp could be coded from launch. It also does not say that the scale applies to selfRadiusHU, which is what matters for sticky jumps.
+
+**Do:** Write: "Air-detonation radius is ×airDetRadiusScale (0.85) if the sticky never touched a surface, ramping linearly to ×1 from arming (0.8 s) to arming + airDetRampTime (2.8 s after launch). It scales both radiusHU and selfRadiusHU."
+
+### 6.12 [error] 3.1 (windows-continuity)
+
+**Problem:** As written, the four `git clone` commands run from the repo root, so the mods land next to `src/` and not in `refs\`. `preflight --mods refs` then finds no `.cs` files, and the hooks that have no 0.55 evidence fail. preflight.py's grep_mods walks the `--mods` folder and names each hit by its first path part, so it expects a folder that holds the cloned repos (the old session used /home/user/refs/<Repo>/).
+
+**Do:** Put the target folder in each clone: `git clone --depth 1 https://github.com/senkodev/WKBloodbugMode refs/WKBloodbugMode` (and the same for refs/WKParkourKnuckle, refs/ResourcefulHands, refs/WK_MoreCommands). Add: "`--mods` takes the folder that contains these four clones."
+
+### 6.13 [error] 3.1 (windows-continuity)
+
+**Problem:** In Windows PowerShell 5.1 (the Windows 11 default), `>` writes UTF-16LE. preflight.parse_api reads the dump as UTF-8 and finds no `== ` lines, so it sees zero types and every hook loses its 0.55 evidence. check_keys opens keycodes.txt with the locale encoding (cp1252), so every modkey binding is reported as not a KeyCode. Separately, `<refs>` is undefined, and it is easy to confuse with the different `refs\` folder that holds the mod clones (the old session used two folders: deps/refs for DLLs and /home/user/refs for mods). Unquoted backslash paths also break in Git Bash, the shell Claude Code's Bash tool uses on Windows: `wkrefs\Assembly-CSharp.dll` becomes `wkrefsAssembly-CSharp.dll`.
+
+**Do:** Name the DLL folder separately, e.g. `wkrefs/`, and use forward slashes. Give the command as: `dotnet run -c Release --project tools/dev/apidump -- wkrefs/Assembly-CSharp.dll wkrefs ".*" | Out-File -Encoding utf8 api055_full.txt` (PowerShell 5.1), or with plain `>` in cmd, Git Bash or PowerShell 7. Add: "the dump and keycodes.txt must be UTF-8/ASCII; PowerShell 5.1 `>` output is UTF-16 and preflight will misread it."
+
+### 6.14 [gap] 3.1 (windows-continuity)
+
+**Problem:** No runnable command is given for keycodes.txt; the next session has to work out the filtering. The recipe is right: apidump prints `  F Int32 value__` and then `  F static KeyCode None` and so on, and splitting on whitespace gives F/static/KeyCode/None. But the step is prose inside a code block. In cmd, the `#` lines are not comments: pasting gives "'#' is not recognized", and the inline `# keep ...` text becomes extra arguments.
+
+**Do:** Replace it with a runnable command and move the comments out of the code block. PowerShell: `dotnet run -c Release --project tools/dev/apidump -- wkrefs/UnityEngine.CoreModule.dll wkrefs "^UnityEngine.KeyCode$" | Select-String '^  F static ' | ForEach-Object { ($_.Line.Trim() -split ' ')[3] } | Set-Content -Encoding ascii keycodes.txt`. Git Bash: `... | awk '/^  F static /{print $4}' > keycodes.txt`. Expected: 337 lines, starting None, Backspace, Delete.
+
+### 6.15 [gap] 3.1 (windows-continuity)
+
+**Problem:** There are no download or extract commands. On Windows, PowerShell 5.1's `Expand-Archive` refuses a `.nupkg` (it requires a .zip extension), so the obvious approach fails. All three URLs return 200 to a HEAD request, which shows the format is right. The direct BepInEx asset URL is https://github.com/BepInEx/BepInEx/releases/download/v5.4.23.5/BepInEx_win_x64_5.4.23.5.zip.
+
+**Do:** Add commands: `mkdir wkrefs, dl` (PowerShell) or `mkdir wkrefs dl` (cmd); `curl.exe -L -o dl/gl.nupkg <gamelibs url>`; `curl.exe -L -o dl/um.nupkg <unityengine.modules url>`; `curl.exe -L -o dl/bpx.zip https://github.com/BepInEx/BepInEx/releases/download/v5.4.23.5/BepInEx_win_x64_5.4.23.5.zip`. Then extract each into its own folder under dl/ with `tar -xf` (Windows' bundled bsdtar reads zip/nupkg), and copy gl `lib/netstandard2.1/*.dll`, um `lib/netstandard2.0/*.dll` and bpx `BepInEx/core/*.dll` into wkrefs/.
+
+### 6.16 [error] 3.1 / 0.4 (windows-continuity)
+
+**Problem:** .gitignore covers only bin/, obj/, /dist/, /build/ and TF2 file extensions. It does not cover refs/, out/, *.ppm, api055_full.txt, keycodes.txt, wkrefs/ or dl/. Section 3.3 says "Commit each working step", so a `git add -A` would commit four other people's repos as embedded gitlinks (ParkourKnuckle has no licence) and the .ppm renders of TF2 models. Section 5 says these must never be committed.
+
+**Do:** Add a step before 0.4: append `/refs/`, `/wkrefs/`, `/dl/`, `/out/`, `*.ppm`, `api*.txt`, `keycodes.txt` to .gitignore and commit that. Or tell the session to keep all of them outside the repo (e.g. `%USERPROFILE%\rk-work\`) and give the paths to preflight and the tests.
+
+### 6.17 [error] 0.1 (windows-continuity)
+
+**Problem:** Git for Windows defaults to core.autocrlf=true, which checks the sheets/*.json files out with CRLF. preflight.py and gen_sheets.py hash the raw sheet bytes. I checked: LF gives 385c9a01989827c7 (the value committed in Sheets.g.cs) and CRLF gives 94fba11bf7337375. On the PC, preflight reports "Sheets.g.cs is out of date". After regenerating, a Sheets.g.cs is committed that fails on any LF checkout, and the hash line flips with every machine.
+
+**Do:** Clone with `git clone -c core.autocrlf=false -b claude/peaceful-clarke-udidyg https://github.com/heheozzt/Merged-Tf2-and-Overwatch`. Also have the session add a `.gitattributes` with `* text=auto eol=lf` as its first commit.
+
+### 6.18 [gap] 0.4 (windows-continuity)
+
+**Problem:** tests/TF2Assets.Tests/Program.cs does not fail when a texture or sound is missing. It prints `(texture not in this install: ...)` or `(sound not in this install: ...)`, continues, and can still end with `ALL PASSED`. A session that checks only the last line would wrongly conclude the textures and sounds were verified.
+
+**Do:** Add: "`ALL PASSED` is not enough. Confirm there are four `PASS sound/weapons/...wav` lines and `PASS texture materials/...` lines for rl, sl, rocket, sticky, sarms and darms. Any `not in this install` line counts as a failure."
+
+### 6.19 [nit] 0.5 (windows-continuity)
+
+**Problem:** Step 5 does not say what result to expect. With the code unwritten, preflight exits 1 with exactly 10 "<System>.cs not written yet" problems; I reproduced this with the old session's inputs. A new session could take that as breakage. Note too that `--tf2` must be the `tf` subfolder: check_assets joins it directly with tf2_misc_dir.vpk. The plugin and the tests accept either folder.
+
+**Do:** Add: "Expected now: `PREFLIGHT: 10 problem(s)`, all `systems.<X>.codeFile: <X>.cs not written yet`. Anything else is a real problem. `--tf2` must point at `...\Team Fortress 2\tf`, not the game folder."
+
+### 6.20 [gap] 3.1 (windows-continuity)
+
+**Problem:** No command is given, and "pass that" could be read as passing the DLL itself to --api; preflight needs the text dump. The path contains spaces, so it must be quoted, and the dependency directory should be the Managed folder.
+
+**Do:** Give the command: `dotnet run -c Release --project tools/dev/apidump -- "<WK>/White Knuckle_Data/Managed/Assembly-CSharp.dll" "<WK>/White Knuckle_Data/Managed" ".*" > api061.txt` (redirect with UTF-8 as above). Then run preflight with `--api api061.txt`. Any hook that fails only against 0.61 means the `hooks` sheet must be fixed first (risk 4.1).
+
+### 6.21 [gap] 3.2 / 3.3 (windows-continuity)
+
+**Problem:** No file is named for the plugin entry point. Neither the systems sheet nor the handoff has the `[BepInPlugin]` class deriving from `BaseUnityPlugin`, the place that creates the Harmony instance, binds the config, initializes the systems in order and drives the per-frame Update. The next session has to invent where it goes and the order the systems start in. preflight's check_code allows extra .cs files, so adding one is safe.
+
+**Do:** Add an 11th, non-sheet file to 3.3: `Plugin.cs`, with `[BepInPlugin("melty.rocketknuckle", "Rocket Knuckle", "0.1.0")]` on a class deriving from `BaseUnityPlugin`. Awake: bind config (keys from `Bindings.*`, TF2 path, saved calibration); `new Harmony(guid)`; WkBridge.Init (abort if a required hook is missing); start the Tf2Content load; register the ModeToggle, Launchers, Projectiles, BlastPhysics, AirControl, Calibration and LeaderboardGuard patches. Update: mode keys and launchers. Also: "Sheets.g.cs is in src/RocketKnuckle/Generated and is picked up by the SDK's default glob."
+
+### 6.22 [gap] 3.2 (windows-continuity)
+
+**Problem:** Nothing tells the session to register the feed. Without a NuGet.Config, `dotnet build` searches only nuget.org and fails to find BepInEx.Core and UnityEngine.Modules. Both packages exist on the feed (bepinex.core 5.4.21 and unityengine.modules 2022.3.62 return 200). No build command or output path is given either.
+
+**Do:** Add: "Create `NuGet.Config` at the repo root with `<add key="BepInEx" value="https://nuget.bepinex.dev/v3/index.json" />` alongside nuget.org. Build with `dotnet build -c Release src/RocketKnuckle`; the DLL is at `src/RocketKnuckle/bin/Release/netstandard2.1/RocketKnuckle.dll`."
+
+### 6.23 [gap] 0.6 (windows-continuity)
+
+**Problem:** On Windows, when Claude Code runs the script its stdout is a pipe, so Python encodes output as cp1252. Any non-cp1252 character in a Melty response (an arrow, emoji or ×) raises UnicodeEncodeError after the call has already run. A create_mod or finish_upload could succeed with its output lost, and a retry would duplicate it. The JSON-argument example in the script's docstring is cmd-only: PowerShell 5.1 strips the embedded quotes when calling a native exe. No PowerShell way to set the variable is given.
+
+**Do:** Add: "On Windows run it as `python -X utf8 tools/dev/melty.py ...` (or set `PYTHONUTF8=1`). Pass arguments with `@args.json` files, not inline JSON. Set the token in PowerShell with `$env:MELTY_TOKEN = '...'` (cmd: `set MELTY_TOKEN=...`) before starting `claude`. After `claude mcp add`, restart the session so the melty tools load."
+
+### 6.24 [gap] 3.6 (windows-continuity)
+
+**Problem:** There is no packaging command, and the Windows defaults go wrong. Windows PowerShell 5.1's `Compress-Archive` can write entry names with backslashes, and without -Force it skips dotfiles, so `.doorstop_version` or the `BepInEx/` mapping may not match. In PowerShell 5.1, `curl` is an alias for Invoke-WebRequest, so a pasted `curl -T` PUT fails. `Get-FileHash` prints the SHA-256 in uppercase hex.
+
+**Do:** Add: "Build the zip with Python `zipfile` (forward-slash arcnames) or with `tar -a -c -f RocketKnuckle-0.1.0.zip <entries>` from the staging folder. Check the entries with `tar -tf`. Upload with `curl.exe -T RocketKnuckle-0.1.0.zip "<put url>"`. Get the size and lowercase hash with `python -c "import hashlib,os,sys;p=sys.argv[1];print(os.path.getsize(p),hashlib.sha256(open(p,'rb').read()).hexdigest())" RocketKnuckle-0.1.0.zip`."
+
+### 6.25 [error] 3.6 Package and publish on Melty (completeness-critic)
+
+**Problem:** The new session on the PC does not have the user's original Melty prompt, so it cannot follow it. Only some of its rules are spread through the handoff. Several are missing or never stated as rules: ask the user only about credits, licence, remix and sign-ins (everything else is Claude's call); use universal-modder; work from the sheets and run preflight before every build; a real gameplay screenshot or clip is a hard gate before publish; never upload game content anywhere (zip, screenshots, GitHub).
+
+**Do:** Add a subsection '1.7 Melty rules carried over from the user's prompt (binding)' with this checklist: (1) White Knuckle is primary/host and TF2 is companion; never call TF2 'secondary'. (2) Bundle what Melty doesn't install (BepInEx 5.4.23.5 plus licences). (3) Never upload or commit game content from either game. (4) Never put the Melty token in files, commits, logs or screenshots. (5) Ask the user only about credits, content licence, remix permission and any sign-ins (Steam/Melty/GitHub); decide everything else yourself. (6) Design sheets are the source of truth; change a sheet before code; run preflight before every build. (7) Use universal-modder (skills/mod-any-game/SKILL.md). (8) A real in-game screenshot or clip of this build is required before publish; never use the .ppm oracle renders or a mockup. (9) Run inspect_package, validate_recipe and one_click_check before submit_release. (10) Call create_mod with githubRepo. (11) Ask before publish. (12) Save melty.json only once the user agrees. (13) Leaderboard-safe. (14) Solo: no recipe.multiplayer. Then change the 3.6 heading to 'follow the rules in 1.7'.
+
+### 6.26 [gap] 3.3 ModeToggle.cs (completeness-critic)
+
+**Problem:** It does not say what happens to items the player is holding (pitons, the game's guns and other HandItems). DropHand's bool argument is undocumented, so DropHand(true) may throw the held item into the world. That would conflict with the hooks sheet, whose HandModel purpose ('hide the White Knuckle hands (and held items)') means items are hidden and kept, not dropped. The next session could ship a toggle that destroys the player's inventory.
+
+**Do:** Add: 'Held items are kept, not dropped. TF2 mode only lets go of holds; any HandItem in a hand stays in that hand, is hidden with handModel's renderers and is blocked by the TryUse/Use prefixes, then comes back unchanged on Q. Before relying on DropHand(true), read DropHand(bool) in the real 0.61e Assembly-CSharp.dll to learn what the bool does. If it drops the held item, use the variant that releases only the handhold (or call handhold release directly) and record this in the hooks sheet. Pressing Q while hanging lets go, so the player falls (accepted consequence of Swap like TF2).'
+
+### 6.27 [gap] 3.3 Launchers.cs / 1.6 (completeness-critic)
+
+**Problem:** It does not say how stickies and firing behave across launcher and mode switches. Unanswered: can right click detonate stickies while the Rocket Launcher is out, or after Q back to hands? Do stickies persist through Q? Is a sticky charge cancelled on switch? Does holding left click auto-refire rockets every 0.8 s? Can you fire during the draw animation? Each session would guess differently, and lifetime 0 (never expires) makes it matter.
+
+**Do:** Add a 'Weapon-state rules' list (TF2 behaviour unless the sheets say otherwise): placed stickies persist through launcher switches and Q toggles and are cleared only on a new run or death. Right click detonates armed stickies while either launcher is out (TF2: any Demoman weapon), but not in hands mode, where right click belongs to White Knuckle's hand. Switching launcher or toggling mode cancels a sticky charge without firing. Holding left click refires the rocket at fireInterval. Firing is blocked until drawSeq finishes; if TF2-accurate deploy time is wanted, add a deployTime column to the weapons sheet. The fire-interval timer keeps running through switches.
+
+### 6.28 [gap] 3.3 (HUD / player feedback) (completeness-critic)
+
+**Problem:** The handoff never specifies what the player sees on screen: the weapon-name hint the weapons sheet expects, a sticky charge meter, the active sticky count (out of 8), the message when TF2 is missing or a required asset or hook fails, or how text is drawn (IMGUI OnGUI vs White Knuckle's UI). No system file owns the HUD, so it may be left out or done inconsistently.
+
+**Do:** Add a 'HUD and messages' paragraph and give each part an owner. ModeToggle shows weapons.displayName for ~2 s on Q, 1 or 2. Launchers draws a small TF2-style charge bar while charging and a sticky counter 'n/8' while the Stickybomb Launcher is out. All messages go through one helper drawn with IMGUI (OnGUI), bottom-centre, auto-hide after ~5 s. Fixed texts: 'Rocket Knuckle: Team Fortress 2 not found, TF2 mode disabled'; 'Rocket Knuckle: <asset> missing from TF2, TF2 mode disabled' (required asset) / log-only for optional assets; 'Rocket Knuckle: game update not supported (<hook> missing), mod disabled'; the leaderboard note. Mark the charge bar and counter as Claude's call, consistent with 'Full TF2 look', not a user decision.
+
+### 6.29 [gap] 1.5 decision 13 / 3.3 Tf2Content.cs (completeness-critic)
+
+**Problem:** It does not cover TF2 being found but some assets failing to load or decode. The assets sheet has a required true/false column, but the handoff never says what to do for each case (for example, missing explode2/3 vs a missing rocket launcher model), or what Q does when TF2 mode is disabled.
+
+**Do:** Add: 'A required asset that fails to load disables TF2 mode (message plus log naming the asset). An optional asset (charge, det, land and draw sounds, explode2/3, effect textures) is skipped silently: random sound picks only among loaded rows, and blasts with no effect textures show only the light. While TF2 mode is disabled, Q does nothing except show the message again, and hands mode is untouched.'
+
+### 6.30 [gap] 3.2 / 1.5 decision 12-13 (completeness-critic)
+
+**Problem:** The handoff never lists the config entries. The text refers to keys (rebindable), a TF2 path entry (decision 13.3) and calibration results 'saved to config for the next launch', but gives no section or key names, defaults, or rules for when saved calibration overrides the movement sheet defaults.
+
+**Do:** List the config schema: [Controls] ToggleMode=Q, SelectRocketLauncher=Alpha1, SelectStickybombLauncher=Alpha2, Fire=Mouse0, AltFire=Mouse1 (from the bindings sheet's configSection). [Paths] Tf2Folder='' (empty = auto). [Calibration] Measured=false, WkGravity, WkVelocityToMetres, WkBodyHeight (initial values from the movement sheet; used instead of the sheet defaults once Measured=true; re-measured each launch and overwritten). State that config holds only player settings and measured values, never tuning numbers (those stay in the sheets).
+
+### 6.31 [gap] 3.3 BlastPhysics.cs (completeness-critic)
+
+**Problem:** The explosion visual spec is only gestured at. The effects sheet has no card count or duration for the fire-cloud texture, no light colour, no blend mode, and no rule for scaling HU sizes. The handoff also does not say that TF2 sounds must go through White Knuckle's audio mixer (the research doc lists AudioManager.PlaySound and gameMixer), so the game's volume settings may not control them.
+
+**Do:** Add: 'Effects use the effects.TF2Explosion row. Sizes and spread are in HU × s. Fire and fire-cloud cards are additive camera-facing quads: fireCards fireball cards plus one fire_cloud2 card at endSize, both over fireDuration. smokeCards smokelit cards are alpha-blended over smokeDuration. The light is warm orange (≈1.0, 0.6, 0.25), range lightRangeHU × s, over lightDuration. If any of these needs a number, add a column to the effects sheet first. Play every TF2 sound through an AudioSource routed to White Knuckle's SFX AudioMixerGroup (AudioManager.instance / gameMixer, resolved by name and added as an optional hook row, with plain AudioSource as fallback), so the game's volume slider applies.'
+
+### 6.32 [nit] 1.5 decision 2 (completeness-critic)
+
+**Problem:** The handoff doesn't list which hooks are required, and the sheet's PlayerObject row contradicts this rule: it is marked required with the fallback 'mod stays idle until a player exists'. The next session needs to know that 6 hooks are hard requirements, and that PlayerObject being null at runtime (menu) is different from the field being missing.
+
+**Do:** Add: 'Required hooks: PlayerObject, PlayerVel, PlayerMovementPrefix, PlayerHands, HandDropHand, HandModel. Missing at startup → mod disabled. PlayerObject existing but null (main menu, loading) → idle, not disabled.'
+
+### 6.33 [gap] 5. Environment notes (completeness-critic)
+
+**Problem:** It is written as a past fact, not an instruction. The user's prompt requires using universal-modder, but the handoff doesn't tell the next session to install or load it on the PC, so the requirement may be dropped. The field note in risk 10 depends on it too.
+
+**Do:** Add to section 0 a step: 'Clone https://github.com/rehan-remade/universal-modder and follow skills/mod-any-game/SKILL.md for the rest of the work (required by the user's prompt). At the end, offer a share-field-notes note and open a PR to the toolkit only with the user's OK.'
+
 ---
 
 ## Appendix: full contents of every file created in this work
 
-Snapshot of the branch at the time of this handoff. Each file is shown in full. `README.md` came with the
-repository and is included for completeness. Not included:
+Snapshot of the branch at the time of this handoff. Each file is shown in full. `README.md` came with the repository. Not included: `HANDOFF.md` itself, and the Melty token (never stored in the repo).
 
-- `HANDOFF.md` (this file);
-- the Melty token, which was only ever kept in a temporary file outside the repo and is deliberately not
-  reproduced.
+File list (31 files):
 
-File list (30 files):
-
+- `.gitattributes`
 - `.gitignore`
 - `README.md`
 - `docs/research-white-knuckle.md`
@@ -511,6 +719,14 @@ File list (30 files):
 - `tools/gen_sheets.py`
 - `tools/preflight.py`
 
+### `.gitattributes`
+
+```
+* text=auto eol=lf
+*.dll binary
+*.zip binary
+```
+
 ### `.gitignore`
 
 ```gitignore
@@ -528,6 +744,15 @@ obj/
 *.vtx
 *.vtf
 *.wav
+
+# local working files (never commit: other people's repos, game-derived renders and dumps)
+/refs/
+/wkrefs/
+/dl/
+/out/
+*.ppm
+api*.txt
+keycodes.txt
 ```
 
 ### `README.md`

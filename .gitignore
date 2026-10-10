@@ -12,3 +12,12 @@ obj/
 *.vtx
 *.vtf
 *.wav
+
+# local working files (never commit: other people's repos, game-derived renders and dumps)
+/refs/
+/wkrefs/
+/dl/
+/out/
+*.ppm
+api*.txt
+keycodes.txt
