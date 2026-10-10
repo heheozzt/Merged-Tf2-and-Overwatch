@@ -1,0 +1,21 @@
+{
+  "sheet": "bindings",
+  "about": "Controls. Mod keys are read with Unity's legacy input (as other White Knuckle mods do) and are rebindable in BepInEx/config/melty.rocketknuckle.cfg; game actions are White Knuckle's own InputManager names.",
+  "columns": {
+    "id": "row id",
+    "source": "modkey (mod's own, rebindable) or gameaction (White Knuckle's InputManager action)",
+    "defaultKey": "Unity KeyCode name for modkey rows; action name for gameaction rows",
+    "when": "when it does something",
+    "action": "what it does",
+    "configSection": "BepInEx config section (modkey rows) or none"
+  },
+  "rows": [
+    { "id": "ToggleMode", "source": "modkey", "defaultKey": "Q", "when": "always in a run", "action": "swap White Knuckle hands <-> TF2 launchers", "configSection": "Controls" },
+    { "id": "SelectRocketLauncher", "source": "modkey", "defaultKey": "Alpha1", "when": "TF2 mode", "action": "switch to the Rocket Launcher", "configSection": "Controls" },
+    { "id": "SelectStickybombLauncher", "source": "modkey", "defaultKey": "Alpha2", "when": "TF2 mode", "action": "switch to the Stickybomb Launcher", "configSection": "Controls" },
+    { "id": "Fire", "source": "modkey", "defaultKey": "Mouse0", "when": "TF2 mode", "action": "fire (stickies: hold to charge, release to launch)", "configSection": "Controls" },
+    { "id": "AltFire", "source": "modkey", "defaultKey": "Mouse1", "when": "TF2 mode", "action": "detonate stickybombs", "configSection": "Controls" },
+    { "id": "Move", "source": "gameaction", "defaultKey": "Move", "when": "TF2 mode, airborne after a blast", "action": "TF2 air strafing input", "configSection": "none" },
+    { "id": "Crouch", "source": "gameaction", "defaultKey": "Crouch", "when": "TF2 mode", "action": "crouched blasts push harder, as in TF2", "configSection": "none" }
+  ]
+}

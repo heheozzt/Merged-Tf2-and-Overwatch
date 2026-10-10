@@ -1,0 +1,16 @@
+{
+  "sheet": "classes",
+  "about": "The TF2 class whose arms hold each launcher and whose air control applies while it is out.",
+  "columns": {
+    "id": "row id",
+    "armsModel": "assets row: c_<class>_arms model",
+    "animationsModel": "assets row: the arms' animation library",
+    "armsSkin": "skin family (0 = RED sleeves)",
+    "maxSpeedHU": "class run speed; the wish speed that TF2 air acceleration uses (HU/s)",
+    "source": "where the numbers come from"
+  },
+  "rows": [
+    { "id": "Soldier", "armsModel": "mdl_c_soldier_arms", "animationsModel": "mdl_c_soldier_animations", "armsSkin": 0, "maxSpeedHU": 240.0, "source": "TF2 class speed: Soldier 240 HU/s" },
+    { "id": "Demoman", "armsModel": "mdl_c_demo_arms", "animationsModel": "mdl_c_demo_animations", "armsSkin": 0, "maxSpeedHU": 280.0, "source": "TF2 class speed: Demoman 280 HU/s" }
+  ]
+}

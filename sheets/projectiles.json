@@ -1,0 +1,54 @@
+{
+  "sheet": "projectiles",
+  "about": "What the launchers fire. HU and seconds.",
+  "columns": {
+    "id": "row id",
+    "model": "assets row: the TF2 projectile model",
+    "skin": "skin family (0 = RED)",
+    "motion": "straight (no gravity) or ballistic (falls under gravityHU)",
+    "gravityHU": "downward acceleration while flying (HU/s^2)",
+    "collisionRadiusHU": "sphere radius used to detect hits",
+    "armTime": "seconds before it can be detonated (0 = always)",
+    "sticksToSurfaces": "true: stops and sticks where it lands",
+    "detonateOn": "impact (explodes on first hit) or command (right click)",
+    "lifetime": "seconds before it removes itself (0 = never)",
+    "spinDegPerSec": "visual spin around its flight axis",
+    "explosion": "explosions row",
+    "impactSound": "assets row played when it lands without exploding, or none",
+    "source": "where the numbers come from"
+  },
+  "rows": [
+    {
+      "id": "Rocket",
+      "model": "mdl_w_rocket",
+      "skin": 0,
+      "motion": "straight",
+      "gravityHU": 0.0,
+      "collisionRadiusHU": 2.0,
+      "armTime": 0.0,
+      "sticksToSurfaces": false,
+      "detonateOn": "impact",
+      "lifetime": 10.0,
+      "spinDegPerSec": 0.0,
+      "explosion": "RocketBlast",
+      "impactSound": "none",
+      "source": "TF2 rockets fly straight with no gravity; 10 s cap is this mod's cleanup"
+    },
+    {
+      "id": "Stickybomb",
+      "model": "mdl_w_stickybomb",
+      "skin": 0,
+      "motion": "ballistic",
+      "gravityHU": 800.0,
+      "collisionRadiusHU": 4.0,
+      "armTime": 0.8,
+      "sticksToSurfaces": true,
+      "detonateOn": "command",
+      "lifetime": 0.0,
+      "spinDegPerSec": 360.0,
+      "explosion": "StickyBlast",
+      "impactSound": "snd_sticky_land",
+      "source": "TF2 SDK tf_grenadelauncher_livetime 0.8; sv_gravity 800"
+    }
+  ]
+}

@@ -1,0 +1,164 @@
+{
+  "sheet": "systems",
+  "about": "The mod's systems. Each lists the sheet rows it is built from and the hooks it needs; each is one C# file.",
+  "columns": {
+    "id": "row id",
+    "codeFile": "source file under src/RocketKnuckle",
+    "hooks": "hooks rows it uses",
+    "uses": "other sheet rows it reads (sheet.row)",
+    "does": "what it does in game"
+  },
+  "rows": [
+    {
+      "id": "Tf2Content",
+      "codeFile": "Tf2Content.cs",
+      "hooks": [],
+      "uses": [
+        "assets.*",
+        "classes.*",
+        "weapons.*",
+        "projectiles.*",
+        "effects.*"
+      ],
+      "does": "finds the player's TF2 folder (passed by Melty), reads models, animations, textures and sounds from it, builds Unity meshes, materials and audio clips"
+    },
+    {
+      "id": "WkBridge",
+      "codeFile": "WkBridge.cs",
+      "hooks": [
+        "*"
+      ],
+      "uses": [
+        "hooks.*"
+      ],
+      "does": "resolves every hooks row by name, logs found/missing, exposes typed accessors and installs the Harmony patches"
+    },
+    {
+      "id": "ModeToggle",
+      "codeFile": "ModeToggle.cs",
+      "hooks": [
+        "PlayerHands",
+        "HandDropHand",
+        "HandSetLocked",
+        "HandSetCanInteract",
+        "HandModel",
+        "HandGrabHoldPrefix",
+        "HandGrabTargetPrefix",
+        "HandItemTryUsePrefix",
+        "HandItemUsePrefix",
+        "PlayerInputLocked",
+        "PlayerPaused",
+        "PlayerStartPostfix"
+      ],
+      "uses": [
+        "bindings.ToggleMode",
+        "bindings.SelectRocketLauncher",
+        "bindings.SelectStickybombLauncher",
+        "assets.snd_draw_primary"
+      ],
+      "does": "Q swaps White Knuckle hands for the TF2 launchers and back; 1/2 pick the launcher"
+    },
+    {
+      "id": "ViewModel",
+      "codeFile": "ViewModel.cs",
+      "hooks": [
+        "PlayerCam",
+        "PlayerInventoryCam"
+      ],
+      "uses": [
+        "weapons.*",
+        "classes.*"
+      ],
+      "does": "draws the real TF2 arms and launcher with TF2's draw/idle/fire animations, at TF2's viewmodel field of view"
+    },
+    {
+      "id": "Launchers",
+      "codeFile": "Launchers.cs",
+      "hooks": [
+        "PlayerCam"
+      ],
+      "uses": [
+        "weapons.*",
+        "bindings.Fire",
+        "bindings.AltFire"
+      ],
+      "does": "fire rates, sticky charge and auto-fire, detonation, max 8 stickies, aiming from TF2's muzzle offsets"
+    },
+    {
+      "id": "Projectiles",
+      "codeFile": "Projectiles.cs",
+      "hooks": [
+        "PlayerCharacterController"
+      ],
+      "uses": [
+        "projectiles.*"
+      ],
+      "does": "flies rockets straight and stickies on a gravity arc, sticks stickies to surfaces, arms them, explodes rockets on impact"
+    },
+    {
+      "id": "BlastPhysics",
+      "codeFile": "BlastPhysics.cs",
+      "hooks": [
+        "PlayerVel",
+        "PlayerMovementPrefix",
+        "PlayerIsHanging",
+        "PlayerIsCrouching",
+        "PlayerCrouchingField",
+        "PlayerUpVector",
+        "PlayerResetFallingHeight",
+        "PlayerMaxFallPostfix",
+        "DenizenType",
+        "PropType"
+      ],
+      "uses": [
+        "explosions.*",
+        "movement.Tf2InWhiteKnuckle",
+        "effects.TF2Explosion",
+        "bindings.Crouch"
+      ],
+      "does": "TF2 self-blast knockback (crouch bonus, airborne/grounded scales, 1000 HU/s cap, down bias), shoves loose objects, blast sounds and visuals, keeps blast height out of fall damage"
+    },
+    {
+      "id": "AirControl",
+      "codeFile": "AirControl.cs",
+      "hooks": [
+        "PlayerVel",
+        "PlayerMovementPrefix",
+        "PlayerAirControl",
+        "PlayerDrag",
+        "InputGetVector"
+      ],
+      "uses": [
+        "movement.Tf2InWhiteKnuckle",
+        "classes.*",
+        "bindings.Move"
+      ],
+      "does": "while flying from a blast: TF2 air acceleration (air strafing) replaces White Knuckle's air control and drag, until you land or grab"
+    },
+    {
+      "id": "Calibration",
+      "codeFile": "Calibration.cs",
+      "hooks": [
+        "PlayerVel",
+        "PlayerMovementPostfix",
+        "PlayerCharacterController"
+      ],
+      "uses": [
+        "movement.Tf2InWhiteKnuckle"
+      ],
+      "does": "measures White Knuckle's gravity, velocity units and body height in flight so TF2 trajectories keep their shape relative to your body"
+    },
+    {
+      "id": "LeaderboardGuard",
+      "codeFile": "LeaderboardGuard.cs",
+      "hooks": [
+        "GamemodeStatic",
+        "GamemodeAllowScoring",
+        "LeaderboardUploadPrefix",
+        "PlayerStartPostfix"
+      ],
+      "uses": [],
+      "does": "a run where explosives were used never posts to White Knuckle's leaderboards"
+    }
+  ]
+}
