@@ -1,0 +1,14 @@
+bin/
+obj/
+/dist/
+/build/
+*.user
+.vs/
+# never commit game files or extracted content
+/tf2cache/
+*.vpk
+*.mdl
+*.vvd
+*.vtx
+*.vtf
+*.wav
